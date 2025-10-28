@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>فريق النخبة</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+
+    <style>
+        /* 2. تصميم الموقع: الألوان والخطوط الأساسية */
+        :root {
+            --color-primary: #4f46e5; /* أزرق غامق */
+            --color-success: #16a34a; /* أخضر للتأكيد */
+            --color-danger: #dc2626; /* أحمر للإنهاء */
+            --color-text: #1f2937;   /* رمادي داكن للنصوص */
+            --color-bg: #f0f2f5;     /* خلفية فاتحة */
+        }
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background-color: var(--color-bg);
+            color: var(--color-text);
+        }
+        /* تطبيق نظام الألوان والظل لـ Tailwind */
+        .btn-primary { background-color: var(--color-primary); }
+        .btn-success { background-color: var(--color-success); }
+        .btn-danger { background-color: var(--color-danger); }
+        .btn-primary:hover { background-color: #4338ca; }
+        .btn-success:hover { background-color: #15803d; }
+        .btn-danger:hover { background-color: #b91c1c; }
+        /* جميع الصور لها تأثير ظل خفيف (shadow-md) */
+        .shadow-image {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        }
+        .nav-link {
+             @apply text-gray-700 hover:text-var(--color-primary) transition font-medium flex items-center p-2 rounded-md;
+        }
+        /* تعديل Select2 ليناسب الاتجاه من اليمين لليسار */
+        .select2-container .select2-selection--single,
+        .select2-container .select2-selection--multiple {
+            height: 42px !important; 
+            border: 1px solid #d1d5db !important;
+            border-radius: 0.5rem !important; /* rounded-lg */
+            padding: 0.5rem !important;
+            background-color: white !important;
+        }
+        .select2-container .select2-selection__rendered {
+            line-height: 28px !important; 
+            padding-right: 12px !important;
+            text-align: right;
+        }
+        .select2-container .select2-selection__arrow {
+            left: 1px !important;
+            right: auto !important;
+        }
+        .select2-container--default .select2-selection--multiple .select2-selection__choice {
+            background-color: var(--color-primary) !important;
+            color: white !important;
+            border: 1px solid var(--color-primary) !important;
+            padding: 0 10px 0 10px; /* لتقليل المسافة الداخلية */
+            margin-top: 4px;
+            float: right; /* لتوجيه العناصر لليمين */
+        }
+        .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+            float: left; /* زر الإزالة لليسار */
+            margin-left: 5px;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body onload="show('home'); renderTeam(); renderMatches(); initSelect2(); renderPosts();">
+
+    <header class="bg-white shadow-md sticky top-0 z-10">
+        <div class="container mx-auto p-4 flex justify-between items-center flex-wrap">
+            <div class="flex items-center space-x-2 space-x-reverse">
+                <img id="logo-img" src="images/shaar.png" alt="شعار النخبة" class="h-10 w-10 object-cover rounded-full shadow-image">
+                <h1 class="text-2xl font-black text-gray-900">النخبة</h1>
+            </div>
+
+            <nav class="flex items-center space-x-4 space-x-reverse mt-2 md:mt-0">
+                <a href="#" onclick="show('home')" class="nav-link"><span class="ml-1">🏠</span> الرئيسية</a>
+                <a href="#" onclick="show('team')" class="nav-link"><span class="ml-1">👥</span> الفريق</a>
+                <a href="#" onclick="show('matches')" class="nav-link"><span class="ml-1">📅</span> المباريات</a>
+
+                <a href="#" onclick="show('manager-dashboard')" id="manager-link" class="nav-link hidden"><span class="ml-1">⚙️</span> إدارة</a>
+
+                <div id="auth-status-container" class="flex items-center space-x-2 space-x-reverse bg-gray-100 p-2 rounded-lg">
+                    <span id="user-display-name" class="text-sm font-bold text-gray-700">وضع الزائر</span>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 max-w-6xl">
+        <div id="manager-status" class="hidden bg-green-100 border-r-4 border-green-500 text-green-700 p-4 mb-4" role="alert">
+            <p class="font-bold">وضع المدير مفعل</p>
+            <p class="text-sm">يمكنك الآن إضافة وتعديل اللاعبين وإنهاء المباريات ونشر المنشورات.</p>
+        </div>
+        
+        <div id="activation-message" class="hidden fixed top-0 right-0 left-0 bg-green-500 text-white p-4 text-center z-50 shadow-2xl">
+            ✅ تم تفعيل وضع المدير بنجاح!
+        </div>
+
+        <section id="home" class="page-content hidden">
+            <div class="text-center p-8 bg-white rounded-lg shadow-lg mb-6">
+                <h2 class="text-3xl font-extrabold mb-4 text-gray-800">أخبار وإعلانات النخبة</h2>
+                <p class="text-lg text-gray-600">هنا تجدون آخر أخبار الفريق وإعلانات المباريات.</p>
+            </div>
+            
+            <div id="posts-container" class="space-y-6">
+                </div>
+        </section>
+
+        <section id="team" class="page-content hidden">
+            <h2 class="text-3xl font-bold mb-6">قائمة اللاعبين 👥</h2>
+            <input type="text" id="player-search" onkeyup="filterTeam()" placeholder="البحث باسم اللاعب..." class="w-full p-3 mb-6 border border-gray-300 rounded-lg focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)] text-right">
+            
+            <div id="team-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            </div>
+            <div id="no-players-message" class="text-center text-gray-500 mt-10 p-5 bg-white rounded-lg shadow hidden">
+                <p class="text-xl">لا توجد أسماء لاعبين حاليًا في القائمة.</p>
+            </div>
+        </section>
+        
+        <section id="matches" class="page-content hidden">
+            <h2 class="text-3xl font-bold mb-6">المباريات 📅</h2>
+            
+            <div id="matches-list" class="space-y-4">
+                </div>
+            
+            <div id="no-matches-message" class="text-center text-gray-500 mt-10 p-5 bg-white rounded-lg shadow hidden">
+                <p class="text-xl">لا توجد مباريات مسجلة حاليًا.</p>
+                <p class="text-sm mt-2">يمكن للمدير إضافة مباراة جديدة من لوحة التحكم.</p>
+            </div>
+        </section>
+
+
+        <section id="player-profile" class="page-content hidden">
+            <div id="player-details" class="bg-white p-8 rounded-lg shadow-lg">
+            </div>
+        </section>
+
+        <section id="match-details" class="page-content hidden">
+            <div id="match-info" class="bg-white p-8 rounded-lg shadow-lg">
+            </div>
+            
+            <div id="match-stats-form" class="mt-8 p-6 bg-gray-100 rounded-lg shadow hidden">
+                <h3 class="text-2xl font-black mb-4 text-gray-800 border-b pb-2">تسجيل نتائج وإحصائيات المباراة</h3>
+                
+                 <div class="p-4 bg-red-50 border border-red-200 rounded-lg mb-6">
+                    <h4 class="text-xl font-bold mb-3 text-red-700">النتيجة والملاحظات</h4>
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div class="text-center p-2 border rounded-lg bg-white">
+                            <label class="block text-sm font-medium text-gray-700">أهداف فريقنا (المسجلة من اللاعبين)</label>
+                            <p id="our-goals-display-form" class="text-3xl font-extrabold text-green-600">0</p>
+                        </div>
+                        <div>
+                            <label for="opponent-goals-form" class="block text-sm font-medium text-gray-700 text-right">أهداف الخصم</label>
+                            <input type="number" id="opponent-goals-form" placeholder="0" value="0" min="0" oninput="updateOurGoals()" class="w-full p-2 border rounded text-center text-2xl font-bold mt-1">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label for="match-notes-form" class="block text-sm font-medium text-gray-700 text-right">ملاحظات المباراة</label>
+                        <textarea id="match-notes-form" rows="3" placeholder="اكتب ملاحظات حول أداء الفريق أو ظروف المباراة..." class="w-full p-2 border rounded text-right mt-1"></textarea>
+                    </div>
+                </div>
+
+
+                <h4 class="text-xl font-bold mb-3 border-b pb-2">تقييم اللاعبين والأهداف والتمريرات الحاسمة</h4>
+                <div id="player-stats-inputs-form" class="space-y-4">
+                    </div>
+                <button onclick="saveMatchStats()" class="btn-primary text-white px-4 py-3 rounded mt-6 w-full text-lg font-bold transition duration-150">حفظ الإحصائيات وتحديث التقييمات</button>
+            </div>
+        </section>
+
+        <section id="manager-dashboard" class="page-content hidden">
+            <div class="bg-white p-8 rounded-lg shadow-lg">
+                <h2 class="text-3xl font-bold mb-6 text-gray-800">⚙️ لوحة تحكم المدير</h2>
+                <p class="text-lg text-gray-600 mb-6">هنا يمكنك إدارة قائمة الفريق والمباريات والمنشورات.</p>
+                
+                <div class="mb-8 p-6 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <h3 class="text-xl font-bold mb-4 text-yellow-800 border-b pb-2">نشر إعلان / خبر جديد 📢</h3>
+                    <input type="text" id="post-title" placeholder="عنوان المنشور (مطلوب)" class="w-full p-2 border rounded text-right mb-3">
+                    <textarea id="post-content" rows="4" placeholder="محتوى المنشور أو الإعلان (مطلوب)..." class="w-full p-2 border rounded text-right mb-3"></textarea>
+                    <input type="text" id="post-image" placeholder="صورة المنشور (مثال: news.jpg) - اختياري" class="w-full p-2 border rounded text-right mb-3">
+                    <button onclick="addPost()" class="btn-primary text-white px-4 py-2 rounded mt-2 w-full transition duration-150">نشر الإعلان</button>
+                </div>
+
+                <div class="mb-8 p-6 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h3 class="text-xl font-bold mb-4 text-blue-800 border-b pb-2">إضافة لاعب جديد</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <input type="text" id="new-player-name" placeholder="اسم اللاعب (مطلوب)" class="p-2 border rounded text-right">
+                        <input type="text" id="new-player-image" placeholder="صورة اللاعب (مثال: ali.jpg)" value="player.jpg" class="p-2 border rounded text-right">
+                    </div>
+                    <button onclick="addPlayer()" class="btn-primary text-white px-4 py-2 rounded mt-4 w-full transition duration-150">إضافة اللاعب</button>
+                </div>
+
+                <div id="add-match-section" class="p-6 bg-green-50 border border-green-200 rounded-lg">
+                    <h3 class="text-xl font-bold mb-4 text-green-800 border-b pb-2">إضافة مباراة جديدة</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <input type="text" id="match-opponent" placeholder="اسم الخصم" class="p-2 border rounded text-right">
+                        <input type="datetime-local" id="match-datetime" class="p-2 border rounded text-right">
+                        <select id="match-pitch" class="p-2 border rounded text-right">
+                            <option value="">صورة الملعب</option>
+                            <option value="ملعب.jpg">ملعب 1</option>
+                            <option value="ملعب2.jpg">ملعب 2</option>
+                        </select>
+                    </div>
+                    <label for="match-squad" class="block text-sm font-medium text-gray-700 text-right mb-1">اللاعبون المستدعون (الحضور)</label>
+                    <select id="match-squad" multiple="multiple" class="w-full">
+                        </select>
+                    <button onclick="addMatch()" class="btn-success text-white px-4 py-2 rounded mt-4 w-full text-lg font-bold transition duration-150">إضافة المباراة</button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // *** هذا الجزء يعمل الآن بالكامل في ذاكرة المتصفح (Client-side) ***
+        
+        // ** الرمز السري لتفعيل وضع المدير **
+        const MANAGER_SECRET_CODE = "JEHAD112233JEHAD"; 
+        
+        let isManagerMode = false; 
+        let activeMatchId = null;
+        let nextPlayerId = 12;
+
+        // بيانات اللاعبين
+        let players = [
+            { id: 1, name: "ميمد", rating: 8.0, goals: 6, assists: 7, image: "ميمد.jpg" }, 
+            { id: 2, name: "مصباح", rating: 6.5, goals: 2, assists: 0, image: "مصباح.jpg" }, 
+            { id: 3, name: "ميلاد", rating: 7.5, goals: 0, assists: 3, image: "ميلاد.jpg" }, 
+            { id: 4, name: "ديدي", rating: 7.8, goals: 0, assists: 3, image: "ديدي.jpg" }, 
+            { id: 5, name: "خرخر", rating: 0.0, goals: 0, assists: 0, image: "خرخر.jpg" }, 
+            { id: 6, name: "عبدالسلام", rating: 0.0, goals: 0, assists: 0, image: "عبدالسلام.jpg" }, 
+            { id: 7, name: "جهاد", rating: 8.9, goals: 10, assists: 6, image: "جهاد.jpg" }, 
+            { id: 8, name: "حسن", rating: 8.6, goals: 7, assists: 7, image: "حسن.jpg" }, 
+            { id: 9, name: "حفيظ", rating: 0.0, goals: 0, assists: 0, image: "حفيظ.jpg" }, 
+            { id: 10, name: "علي", rating: 2.0, goals: 0, assists: 0, image: "علي.jpg" }, 
+            { id: 11, name: "أسامة", rating: 6.0, goals: 0, assists: 0, image: "أسامة.jpg" }, 
+        ];
+
+        // مصفوفة المباريات 
+        let matches = [
+            {
+                id: 1000, 
+                opponent: "الطابوني", 
+                date: "2025-10-24T23:00", 
+                pitch: "ملعب.jpg",
+                squad: [1, 7, 4, 8, 3, 2, 11, 10], 
+                ended: true, 
+                opponentGoals: 10, 
+                notes: "مباراة سيئة جدًا جدًا، الأداء كان دون المستوى،\nولن نتحسن إذا واصلنا اللعب ضد الأشكال هاذي.", 
+                lineup: "تشكيلة_افتراضية.jpg", 
+                stats: [ 
+                    { playerId: 7, goals: 10, assists: 6, rating: 8.9 }, 
+                    { playerId: 1, goals: 6, assists: 7, rating: 8.0 }, 
+                    { playerId: 8, goals: 7, assists: 7, rating: 8.6 }, 
+                    { playerId: 2, goals: 2, assists: 0, rating: 6.5 }, 
+                    { playerId: 3, goals: 0, assists: 3, rating: 7.5 }, 
+                    { playerId: 4, goals: 0, assists: 3, rating: 7.8 }, 
+                    { playerId: 11, goals: 0, assists: 0, rating: 6.0 }, 
+                    { playerId: 10, goals: 0, assists: 0, rating: 2.0 }  
+                ]
+            }
+        ]; 
+
+        // مصفوفة المنشورات (Posts)
+        let posts = [
+            { 
+                id: 1, 
+                title: "صورة الفريق الرسمية", 
+                content: "ندعوكم لمشاهدة صورة فريق النخبة الرسمية، كل التوفيق لأبطالنا في الموسم القادم.", 
+                image: "sora.png", 
+                date: new Date().toLocaleString('ar-EG'),
+                pinned: true
+            }
+        ];
+        
+        // 7.1 التنقل: وظيفة الانتقال بين الصفحات
+        function show(sectionId, playerId = null, matchId = null) {
+            document.querySelectorAll('.page-content').forEach(section => {
+                section.classList.add('hidden');
+            });
+            document.getElementById(sectionId).classList.remove('hidden');
+
+            if (sectionId === 'player-profile' && playerId !== null) {
+                renderPlayerProfile(playerId);
+            } else if (sectionId === 'match-details' && matchId !== null) {
+                renderMatchDetails(matchId);
+            } 
+        }
+
+        // *** وظيفة تفعيل وضع المدير السرية (عبر البحث) ***
+        function activateManagerMode() {
+            if (isManagerMode) return; 
+
+            isManagerMode = true;
+            document.getElementById('manager-link').classList.remove('hidden');
+            document.getElementById('manager-status').classList.remove('hidden');
+            document.getElementById('user-display-name').textContent = "مرحباً، المدير";
+            
+            const activationMsg = document.getElementById('activation-message');
+            activationMsg.classList.remove('hidden');
+            setTimeout(() => {
+                activationMsg.classList.add('hidden');
+            }, 3000); 
+            
+            document.getElementById('player-search').value = '';
+            renderTeam(); 
+
+            show('manager-dashboard'); 
+        }
+        // **********************************
+
+        function initSelect2() {
+            const selectSquad = $('#match-squad');
+            selectSquad.empty(); 
+            const sortedPlayers = [...players].sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+            sortedPlayers.forEach(player => {
+                selectSquad.append(new Option(player.name, player.id, false, false));
+            });
+            selectSquad.select2({
+                placeholder: "اختر اللاعبين المستدعين",
+                allowClear: true,
+                dir: "rtl" 
+            });
+        }
+        
+        function addPost() {
+            if (!isManagerMode) {
+                alert('يجب تفعيل وضع المدير لنشر المنشورات.');
+                return;
+            }
+            
+            const title = document.getElementById('post-title').value.trim();
+            const content = document.getElementById('post-content').value.trim();
+            let image = document.getElementById('post-image').value.trim();
+
+            if (!title || !content) {
+                alert('الرجاء إدخال عنوان ومحتوى المنشور.');
+                return;
+            }
+            
+            if (!image) {
+                image = "news.jpg"; 
+            }
+
+            const newPost = {
+                id: Date.now(),
+                title: title,
+                content: content,
+                image: image,
+                date: new Date().toLocaleString('ar-EG'),
+                pinned: false
+            };
+
+            posts.unshift(newPost); 
+            renderPosts(); 
+
+            document.getElementById('post-title').value = '';
+            document.getElementById('post-content').value = '';
+            document.getElementById('post-image').value = ''; 
+
+            alert('تم نشر المنشور بنجاح!');
+            show('home'); 
+        }
+        
+        function renderPosts() {
+            const postsContainer = document.getElementById('posts-container');
+            postsContainer.innerHTML = '';
+
+            const sortedPosts = [...posts].sort((a, b) => {
+                if (a.pinned && !b.pinned) return -1;
+                if (!a.pinned && b.pinned) return 1;
+                return b.id - a.id; 
+            });
+
+            sortedPosts.forEach(post => {
+                const pinnedBadge = post.pinned ? '<span class="text-sm bg-red-500 text-white px-2 py-0.5 rounded-full ml-2">📌 مثبت</span>' : '';
+                
+                let imageHTML = '';
+                // ** تعديل كلاس الصورة ليتناسب مع الأبعاد الطويلة ويحافظ على الاستجابة **
+                if (post.image) {
+                    const imageSrc = `images/${post.image}`;
+                    const fallbackSrc = 'images/news.jpg';
+                    // w-full و h-auto و object-contain: تضمن أن الصورة ستأخذ كامل العرض المتاح وتُظهر محتواها بالكامل دون قص، مع الحفاظ على نسبتها (مثالية للصور العمودية مثل 1587*2245)
+                    imageHTML = `<img src="${imageSrc}" alt="صورة المنشور" onerror="this.onerror=null;this.src='${fallbackSrc}';" class="w-full h-auto max-w-full object-contain rounded-lg shadow-md mb-4">`;
+                }
+                
+                const postHTML = `
+                    <div class="bg-white p-6 rounded-lg shadow-xl border-r-4 ${post.pinned ? 'border-red-600' : 'border-blue-600'}">
+                        <div class="flex items-center justify-between mb-4">
+                             <h3 class="text-2xl font-black text-gray-900 flex items-center">${post.title} ${pinnedBadge}</h3>
+                            <p class="text-sm text-gray-500">${post.date}</p>
+                        </div>
+                        ${imageHTML}
+                        <p class="text-gray-700 leading-relaxed">${post.content}</p>
+                    </div>
+                `;
+                postsContainer.innerHTML += postHTML;
+            });
+        }
+        
+        function addPlayer() {
+            if (!isManagerMode) {
+                alert('يجب تفعيل وضع المدير لإضافة اللاعبين.');
+                return;
+            }
+            
+            const name = document.getElementById('new-player-name').value.trim();
+            let image = document.getElementById('new-player-image').value.trim();
+            
+            if (!name) {
+                alert('الرجاء إدخال اسم اللاعب.');
+                return;
+            }
+            
+            if (!image) {
+                image = "player.jpg"; 
+            }
+            
+            if (players.some(p => p.name === name)) {
+                 alert('هذا الاسم موجود بالفعل. يرجى اختيار اسم آخر.');
+                 return;
+            }
+
+            const newPlayer = {
+                id: nextPlayerId++,
+                name: name,
+                rating: 0.0,
+                goals: 0,
+                assists: 0, 
+                image: image 
+            };
+
+            players.push(newPlayer);
+            renderTeam(); 
+            initSelect2(); 
+
+            document.getElementById('new-player-name').value = '';
+            document.getElementById('new-player-image').value = 'player.jpg';
+
+            alert(`تم إضافة اللاعب ${name} بنجاح!`);
+        }
+
+
+        function renderTeam(filteredPlayers = players) {
+            const teamList = document.getElementById('team-list');
+            teamList.innerHTML = '';
+            
+            if (filteredPlayers.length === 0) {
+                document.getElementById('no-players-message').classList.remove('hidden');
+                return;
+            } else {
+                document.getElementById('no-players-message').classList.add('hidden');
+            }
+
+            const sortedPlayers = [...filteredPlayers].sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+
+            sortedPlayers.forEach(player => {
+                const displayRating = player.rating.toFixed(1) > 0.0 ? player.rating.toFixed(1) : 'N/A';
+                const ratingColor = player.rating.toFixed(1) > 0.0 ? 'text-[var(--color-primary)]' : 'text-gray-400';
+                
+                let playerIcon = '';
+                if (player.id === 7 && player.rating === 8.9) { 
+                    playerIcon = '<span class="text-yellow-500 mr-1">⭐</span>'; 
+                }
+                if (player.id === 1 && player.rating === 8.0) { 
+                    playerIcon += '<span class="text-red-600 mr-1">(C)</span>'; 
+                }
+
+
+                const playerCard = `
+                    <div onclick="show('player-profile', ${player.id})" class="bg-white rounded-xl shadow-lg p-4 text-center cursor-pointer hover:shadow-xl transition duration-300">
+                        <img src="images/${player.image}" alt="${player.name}" onerror="this.onerror=null;this.src='images/player.jpg';" class="h-32 w-32 object-cover rounded-full mx-auto mb-3 shadow-image">
+                        <h3 class="text-xl font-bold flex justify-center items-center">${playerIcon}${player.name}</h3>
+                        <p class="text-lg font-extrabold mt-1">التقييم: <span class="${ratingColor}">${displayRating}</span> ⭐</p>
+                    </div>
+                `;
+                teamList.innerHTML += playerCard;
+            });
+        }
+        
+        function filterTeam() {
+            const searchTerm = document.getElementById('player-search').value.trim().toUpperCase();
+            
+            if (searchTerm === MANAGER_SECRET_CODE.toUpperCase()) {
+                activateManagerMode();
+                return; 
+            }
+
+            const filtered = players.filter(player => player.name.toLowerCase().includes(searchTerm.toLowerCase()));
+            renderTeam(filtered);
+        }
+
+        function renderPlayerProfile(id) {
+            const player = players.find(p => p.id === id);
+            const detailsDiv = document.getElementById('player-details');
+            
+            if (!player) return;
+            
+            const displayRating = player.rating.toFixed(1) > 0.0 ? player.rating.toFixed(1) : 'N/A';
+            const ratingColor = player.rating.toFixed(1) > 0.0 ? 'text-[var(--color-primary)]' : 'text-gray-500';
+
+            let playerIcon = '';
+            if (player.id === 7 && player.rating === 8.9) { 
+                playerIcon = '<span class="text-yellow-500 ml-2 text-2xl">⭐</span>'; 
+            }
+            if (player.id === 1 && player.rating === 8.0) { 
+                playerIcon += '<span class="text-red-600 ml-2 text-2xl">(C)</span>'; 
+            }
+
+            // استخدام flex-col/md:flex-row لضمان التكيف على الهواتف
+            detailsDiv.innerHTML = `
+                <button onclick="show('team')" class="bg-gray-200 text-gray-800 px-4 py-2 rounded mb-6 hover:bg-gray-300 transition">العودة لقائمة الفريق</button>
+                <div class="flex flex-col md:flex-row items-center md:items-start space-x-8 space-x-reverse">
+                    <img src="images/${player.image}" alt="${player.name}" onerror="this.onerror=null;this.src='images/player.jpg';" class="h-40 w-40 object-cover rounded-full shadow-image mb-4 md:mb-0">
+                    <div>
+                        <h2 class="text-4xl font-extrabold mb-4 text-gray-900 flex items-center">${player.name}${playerIcon}</h2>
+                        <div class="grid grid-cols-2 gap-4 text-lg">
+                            <p class="font-semibold text-gray-700">التقييم:</p>
+                            <p class="font-black ${ratingColor}">${displayRating} ⭐</p>
+                            <p class="font-semibold text-gray-700">الأهداف:</p>
+                            <p class="font-black text-[var(--color-success)]">${player.goals} ⚽</p>
+                            <p class="font-semibold text-gray-700">التمريرات الحاسمة:</p>
+                            <p class="font-black text-gray-800">${player.assists} 🅰️</p> 
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function addMatch() {
+            if (!isManagerMode) {
+                alert('يجب تفعيل وضع المدير لإضافة المباريات.');
+                return;
+            }
+            
+            const opponent = document.getElementById('match-opponent').value;
+            const datetime = document.getElementById('match-datetime').value;
+            const pitch = document.getElementById('match-pitch').value;
+            const squadIds = $('#match-squad').val() || [];
+            
+            if (!opponent || !datetime || !pitch || squadIds.length === 0) {
+                alert('الرجاء إدخال جميع بيانات المباراة (الخصم، التاريخ، صورة الملعب، وتحديد اللاعبين المستدعين).');
+                return;
+            }
+
+            const newMatch = {
+                id: Date.now(),
+                opponent: opponent,
+                date: datetime,
+                pitch: pitch,
+                squad: squadIds.map(id => parseInt(id)), 
+                ended: false,
+                stats: null,
+                lineup: "تشكيلة_افتراضية.jpg", 
+                opponentGoals: 0, 
+                notes: "" 
+            };
+
+            matches.unshift(newMatch);
+            renderMatches();
+
+            document.getElementById('match-opponent').value = '';
+            document.getElementById('match-datetime').value = '';
+            document.getElementById('match-pitch').value = '';
+            $('#match-squad').val(null).trigger('change'); 
+
+            alert('تمت إضافة المباراة بنجاح.');
+        }
+
+        function renderMatches() {
+            const matchesList = document.getElementById('matches-list');
+            if (!matchesList) {
+                return;
+            }
+
+            matchesList.innerHTML = '';
+            
+            if (matches.length === 0) {
+                 document.getElementById('no-matches-message').classList.remove('hidden');
+                 return;
+            } else {
+                document.getElementById('no-matches-message').classList.add('hidden');
+            }
+
+
+            matches.forEach(match => {
+                let dateStr, timeStr;
+                try {
+                    const dateObj = new Date(match.date);
+                    if (isNaN(dateObj.getTime())) { 
+                        dateStr = 'تاريخ غير صالح';
+                        timeStr = 'وقت غير صالح';
+                    } else {
+                        dateStr = dateObj.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
+                        timeStr = dateObj.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+                    }
+                } catch (e) {
+                    dateStr = 'خطأ في التاريخ';
+                    timeStr = 'خطأ في الوقت';
+                }
+
+                let statusBadge = match.ended 
+                    ? `<span class="bg-red-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full">منتهية</span>`
+                    : `<span class="bg-blue-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full">قادمة</span>`;
+
+                let managerButton = '';
+                if (isManagerMode && !match.ended) {
+                    managerButton = `
+                        <button onclick="startMatchStats(${match.id})" class="btn-danger text-white text-sm px-3 py-1 rounded ml-3 hover:bg-red-700 transition">إنهاء المباراة</button>
+                    `;
+                }
+
+                const matchCard = `
+                    <div class="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition duration-300 cursor-pointer flex justify-between items-center">
+                        <div onclick="show('match-details', null, ${match.id})" class="flex items-center space-x-4 space-x-reverse w-full">
+                            <img src="images/${match.pitch}" alt="ملعب" class="h-10 w-10 object-cover rounded shadow-image">
+                            <div>
+                                <p class="text-lg font-bold">ضد: ${match.opponent}</p>
+                                <p class="text-sm text-gray-600">${dateStr} - ${timeStr}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center flex-shrink-0">
+                            ${statusBadge}
+                            ${managerButton}
+                        </div>
+                    </div>
+                `;
+                matchesList.innerHTML += matchCard;
+            });
+        }
+        
+        function renderMatchDetails(id) {
+            const match = matches.find(m => m.id === id);
+            const matchInfoDiv = document.getElementById('match-info');
+            const statsFormDiv = document.getElementById('match-stats-form');
+            activeMatchId = id;
+
+            if (!match) return;
+            
+            statsFormDiv.classList.add('hidden');
+
+            let dateStr, timeStr;
+            try {
+                const dateObj = new Date(match.date);
+                if (isNaN(dateObj.getTime())) { 
+                    dateStr = 'تاريخ غير صالح';
+                    timeStr = 'وقت غير صالح';
+                } else {
+                    dateStr = dateObj.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
+                    timeStr = dateObj.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+                }
+            } catch (e) {
+                dateStr = 'خطأ في التاريخ';
+                timeStr = 'خطأ في الوقت';
+            }
+
+
+            const squadNames = match.squad.map(id => {
+                const player = players.find(p => p.id === id);
+                return player ? player.name : 'لاعب محذوف';
+            }).join(' - ');
+
+
+            let statsContent = `
+                <div class="mt-6 border-t pt-4">
+                    <h4 class="text-xl font-bold mb-3">اللاعبون المستدعون (الحضور)</h4>
+                    <p class="text-gray-700 p-3 bg-gray-100 rounded">${squadNames || 'لم يتم تحديد لاعبين مستدعين.'}</p>
+                </div>
+            `;
+            
+            if (!match.ended) {
+                 statsContent += `<p class="text-lg text-red-500 font-semibold mt-4">لم يتم إنهاء المباراة بعد. ${isManagerMode ? '' : ' (لتسجيل الإحصائيات، يجب تفعيل وضع المدير أولاً)'}</p>`;
+            }
+
+
+            let teamGoals = 0;
+            let bestPlayer = 'لا يوجد بعد';
+
+            if (match.ended && match.stats) {
+                const playerStats = match.stats.map(s => {
+                    const player = players.find(p => p.id === s.playerId);
+                    let icon = '';
+                    if (s.rating === 8.9 && s.playerId === 7) { 
+                        icon = ' ⭐ (رجل المباراة)';
+                        bestPlayer = player.name;
+                    } else if (s.rating === 8.0 && s.playerId === 1) { 
+                        icon = ' (C) (القائد)';
+                    }
+                    return { ...s, name: player ? player.name : 'لاعب محذوف', icon };
+                }).sort((a, b) => b.goals - a.goals); 
+
+                teamGoals = playerStats.reduce((sum, s) => sum + s.goals, 0);
+
+                const goalScorersList = playerStats.filter(s => s.goals > 0 || s.assists > 0 || s.rating > 0).map(s => `<li>${s.name} ${s.icon} - التقييم: ${s.rating.toFixed(1)} (${s.goals} أهداف, ${s.assists} تمريرات حاسمة)</li>`).join('');
+                
+                let resultColor = 'text-gray-700';
+                let resultText = 'تعادل';
+                if (teamGoals > match.opponentGoals) {
+                    resultColor = 'text-green-700';
+                    resultText = 'فوز';
+                } else if (teamGoals < match.opponentGoals) {
+                    resultColor = 'text-red-700';
+                    resultText = 'هزيمة';
+                }
+
+                statsContent = `
+                    <div class="mt-6 border-t pt-4">
+                        <h4 class="text-xl font-bold mb-3">اللاعبون المستدعون (الحضور)</h4>
+                        <p class="text-gray-700 p-3 bg-gray-100 rounded">${squadNames || 'لم يتم تحديد لاعبين مستدعين.'}</p>
+
+                        <h4 class="text-xl font-bold mb-3 mt-6 border-t pt-4">إحصائيات المباراة النهائية</h4>
+                        <div class="grid grid-cols-2 gap-4 text-lg">
+                            <p class="font-semibold text-gray-700">نتيجة المباراة:</p>
+                            <p class="font-black text-2xl ${resultColor}">${teamGoals} - ${match.opponentGoals} (${resultText})</p>
+                            <p class="font-semibold text-gray-700">رجل المباراة:</p>
+                            <p class="font-black text-yellow-500">${bestPlayer} ⭐</p>
+                        </div>
+                        
+                        <h5 class="text-lg font-semibold mt-4 mb-2">إحصائيات وتقييم اللاعبين المشاركين:</h5>
+                        <ul class="list-disc pr-8 text-gray-700">${goalScorersList || '<li>لم تسجل إحصائيات.</li>'}</ul>
+                        
+                        <h5 class="text-lg font-semibold mt-4 mb-2">ملاحظة القائد:</h5>
+                        <p class="text-gray-700 p-3 bg-red-100 rounded whitespace-pre-wrap">${match.notes || 'لا توجد ملاحظات مسجلة.'}</p>
+                    </div>
+                `;
+            }
+
+            matchInfoDiv.innerHTML = `
+                <button onclick="show('matches')" class="bg-gray-200 text-gray-800 px-4 py-2 rounded mb-6 hover:bg-gray-300 transition">العودة لقائمة المباريات</button>
+                <div class="text-center">
+                    <h2 class="text-4xl font-extrabold mb-2 text-gray-900">مباراة ضد ${match.opponent}</h2>
+                    <p class="text-xl text-gray-600 mb-6">${dateStr} - ${timeStr}</p>
+                    <img src="images/${match.lineup}" alt="صورة التشكيلة" class="mx-auto rounded-xl shadow-image max-h-96 w-full object-cover">
+                    ${statsContent}
+                </div>
+            `;
+        }
+
+        function startMatchStats(id) {
+            const match = matches.find(m => m.id === id);
+            if (!isManagerMode || match.ended) {
+                alert('يجب تفعيل وضع المدير أولاً لإنهاء المباراة.');
+                return;
+            }
+
+            if (match.squad.length === 0) {
+                alert('لا يمكن إنهاء المباراة. لم يتم تحديد اللاعبين المستدعين بعد.');
+                return;
+            }
+
+            show('match-details', null, id); 
+
+            document.getElementById('match-stats-form').classList.remove('hidden');
+            
+            const statsInputsDiv = document.getElementById('player-stats-inputs-form');
+            statsInputsDiv.innerHTML = ''; 
+
+            match.squad.forEach(playerId => {
+                const player = players.find(p => p.id === playerId);
+                if (player) {
+                    // grid-cols-4 لترتيب عناصر الإدخال
+                    const inputGroup = `
+                        <div class="p-3 border rounded-lg bg-white grid grid-cols-4 gap-4 items-center">
+                            <span class="font-bold text-lg">${player.name}</span>
+                            <div>
+                                <label for="goals-form-${playerId}" class="block text-xs font-medium text-gray-500">أهداف</label>
+                                <input type="number" id="goals-form-${playerId}" value="0" min="0" oninput="updateOurGoals()" class="w-full p-1 border rounded text-center font-bold">
+                            </div>
+                            <div>
+                                <label for="assists-form-${playerId}" class="block text-xs font-medium text-gray-500">تمريرات حاسمة</label>
+                                <input type="number" id="assists-form-${playerId}" value="0" min="0" class="w-full p-1 border rounded text-center font-bold">
+                            </div>
+                            <div>
+                                <label for="rating-form-${playerId}" class="block text-xs font-medium text-gray-500">تقييم (1-10)</label>
+                                <input type="number" id="rating-form-${playerId}" value="7.0" min="1" max="10" step="0.1" class="w-full p-1 border rounded text-center font-bold">
+                            </div>
+                        </div>
+                    `;
+                    statsInputsDiv.innerHTML += inputGroup;
+                }
+            });
+
+            updateOurGoals(); 
+        }
+
+        function updateOurGoals() {
+            let totalGoals = 0;
+            const match = matches.find(m => m.id === activeMatchId);
+            if (!match) return;
+
+            match.squad.forEach(playerId => {
+                const goalsInput = document.getElementById(`goals-form-${playerId}`);
+                totalGoals += parseInt(goalsInput?.value) || 0; 
+            });
+            document.getElementById('our-goals-display-form').textContent = totalGoals;
+        }
+
+        function saveMatchStats() {
+            if (!isManagerMode || activeMatchId === null) return; 
+
+            const match = matches.find(m => m.id === activeMatchId);
+            if (!match) return;
+
+            const opponentGoals = parseInt(document.getElementById('opponent-goals-form').value) || 0;
+            const notes = document.getElementById('match-notes-form').value.trim();
+            const newStats = [];
+            let playersCounted = 0;
+
+            match.squad.forEach(playerId => {
+                const goalsInput = document.getElementById(`goals-form-${playerId}`);
+                const assistsInput = document.getElementById(`assists-form-${playerId}`);
+                const ratingInput = document.getElementById(`rating-form-${playerId}`);
+                
+                const goals = parseInt(goalsInput.value) || 0;
+                const assists = parseInt(assistsInput.value) || 0;
+                const rating = parseFloat(ratingInput.value);
+
+                if (rating >= 1 && rating <= 10) {
+                    newStats.push({ playerId, goals, assists, rating });
+                    playersCounted++;
+                }
+            });
+
+            if (playersCounted === 0) {
+                alert('الرجاء إدخال تقييمات اللاعبين بشكل صحيح (بين 1 و 10).');
+                return;
+            }
+
+            match.ended = true;
+            match.opponentGoals = opponentGoals;
+            match.notes = notes;
+            match.stats = newStats;
+
+            newStats.forEach(stats => {
+                const player = players.find(p => p.id === stats.playerId);
+                if (player) {
+                    const playerMatchesBefore = matches.filter(m => m.ended && m.squad.includes(player.id) && m.id !== match.id).length;
+                    
+                    const totalMatches = playerMatchesBefore + 1;
+
+                    if (totalMatches <= 1) {
+                         player.rating = stats.rating;
+                    } else {
+                        const totalRatingSum = (player.rating * playerMatchesBefore) + stats.rating;
+                        player.rating = totalRatingSum / totalMatches;
+                    }
+                    
+                    player.goals += stats.goals;
+                    player.assists += stats.assists;
+                }
+            });
+
+            renderMatchDetails(activeMatchId);
+            renderTeam(); 
+            renderMatches();
+            
+            alert('تم حفظ الإحصائيات وإنهاء المباراة بنجاح.');
+            document.getElementById('match-stats-form').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
