@@ -252,20 +252,27 @@
 
     <script>
         
-        // ** وظيفة جديدة لتبديل الأيقونة النشطة **
+        // ** وظيفة جديدة لتبديل الأيقونة النشطة - تم إصلاح الخلل البرمجي هنا **
         function setActiveNav(element) {
-            document.querySelectorAll('.nav-link').forEach(link => {
-                link.classList.remove('nav-link-active');
-            });
-            // إذا كان العنصر موجوداً (مفيد للهاتف)
+            let targetSectionId = 'home'; 
+
+            // 1. تحديد القسم المستهدف (سواء بالنقر أو الافتراضي 'home')
             if (element) {
-                element.classList.add('nav-link-active');
-            }
-            // لتحديد العنصر الصحيح في الهيدر العلوي عند النقر في الشريط السفلي (والعكس)
-            const target = element.getAttribute('onclick').match(/'(.*?)'/)[1];
+                const onclickAttr = element.getAttribute('onclick');
+                const match = onclickAttr.match(/show\('(.*?)'/);
+                if (match && match[1]) {
+                    targetSectionId = match[1];
+                }
+            } 
+            // إذا لم يتم تمرير عنصر (في حالة onload)، تبقى القيمة الافتراضية 'home'
+
+            // 2. تفعيل الرابط الذي يقود إلى القسم المستهدف وإلغاء تفعيل البقية
             document.querySelectorAll('.nav-link').forEach(link => {
-                if(link.getAttribute('onclick').includes(target)) {
+                // نستخدم `includes` للبحث عن النص الصحيح داخل خاصية onclick
+                if(link.getAttribute('onclick').includes(`show('${targetSectionId}'`)) {
                     link.classList.add('nav-link-active');
+                } else {
+                    link.classList.remove('nav-link-active');
                 }
             });
         }
